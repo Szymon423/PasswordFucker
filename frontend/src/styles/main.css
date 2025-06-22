@@ -1,0 +1,59 @@
+:root {
+	--bg-primary: #1e1e1e;
+	--bg-secondary: #252526;
+	--bg-tertiary: #333333;
+	--text-primary: #ffffff;
+	--text-secondary: #cccccc;
+	--accent-color: #007acc;
+	--border-color: #474747;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	background-color: var(--bg-primary);
+	color: var(--text-primary);
+}
+
+.nav-link {
+	color: var(--text-secondary);
+	text-decoration: none;
+	padding: 10px 20px;
+	display: block;
+	transition: background-color 0.2s;
+}
+
+.nav-link:hover {
+	background-color: var(--bg-tertiary);
+}
+
+.nav-link.active {
+	background-color: var(--bg-tertiary);
+	color: var(--text-primary);
+	border-left: 3px solid var(--accent-color);
+}
+
+.form-input {
+	background-color: var(--bg-tertiary);
+	border: 1px solid var(--border-color);
+	color: var(--text-primary);
+	padding: 8px 12px;
+	border-radius: 4px;
+	width: 100%;
+	margin-bottom: 1rem;
+}
+
+.btn {
+	background-color: var(--accent-color);
+	color: var(--text-primary);
+	border: none;
+	padding: 8px 16px;
+	border-radius: 4px;
+	cursor: pointer;
+	transition: opacity 0.2s;
+}
+
+.btn:hover {
+	opacity: 0.9;
+}
