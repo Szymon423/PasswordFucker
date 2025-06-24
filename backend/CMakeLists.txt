@@ -24,7 +24,7 @@ message("VCPKG_TARGET_TRIPLET: ${VCPKG_TARGET_TRIPLET}")
 
 # Znajdź odpowiednie pakiety
 find_package(spdlog CONFIG REQUIRED)
-find_package(Poco REQUIRED COMPONENTS Util Net)
+find_package(Poco REQUIRED COMPONENTS Util Net JWT)
 find_package(SQLiteCpp CONFIG REQUIRED)
 
 # Dodaj exe
@@ -40,6 +40,7 @@ target_link_libraries(PasswordFuckerBackend PRIVATE
     spdlog::spdlog
     Poco::Net
 	Poco::Util
+	Poco::JWT
     ws2_32
     kernel32
     SQLiteCpp

@@ -1,30 +1,42 @@
-import { app as o, BrowserWindow as t } from "electron";
-import i from "path";
-import { fileURLToPath as l } from "url";
-const s = l(import.meta.url), c = i.dirname(s);
-function n() {
-  const e = new t({
+import { app, BrowserWindow } from "electron";
+import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+function createWindow() {
+  const win = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: !0,
-      contextIsolation: !1,
-      webSecurity: !1
+      nodeIntegration: true,
+      contextIsolation: false,
+      webSecurity: false
       // tylko do developmentu!
     }
   });
-  e.webContents.openDevTools(), process.env.VITE_DEV_SERVER_URL ? e.loadURL(process.env.VITE_DEV_SERVER_URL) : e.loadFile(i.join(c, "../dist/index.html")), e.webContents.on("did-fail-load", (d, r, a) => {
-    console.error("Failed to load:", r, a);
+  win.webContents.openDevTools();
+  if (process.env.VITE_DEV_SERVER_URL) {
+    win.loadURL(process.env.VITE_DEV_SERVER_URL);
+  } else {
+    win.loadFile(path.join(__dirname, "../dist/index.html"));
+  }
+  win.webContents.on("did-fail-load", (event, errorCode, errorDescription) => {
+    console.error("Failed to load:", errorCode, errorDescription);
   });
 }
-o.whenReady().then(() => {
-  n(), o.on("activate", () => {
-    t.getAllWindows().length === 0 && n();
+app.whenReady().then(() => {
+  createWindow();
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
   });
 });
-o.on("window-all-closed", () => {
-  process.platform !== "darwin" && o.quit();
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });
-process.on("uncaughtException", (e) => {
-  console.error("Uncaught Exception:", e);
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught Exception:", error);
 });

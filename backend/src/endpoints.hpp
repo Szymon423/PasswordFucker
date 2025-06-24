@@ -35,4 +35,14 @@ namespace Endpoints {
     /// @param request HTTP request
     /// @param response HTTP response
     void removePassword(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept;
+
+    /// @brief Login to app
+    /// @param request HTTP request
+    /// @param response HTTP response
+    void login(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept;
+
+    /// @brief Login to app
+    /// @param request HTTP request
+    /// @param response HTTP response
+    void registerUser(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept;
 }

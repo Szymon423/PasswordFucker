@@ -7,6 +7,7 @@
 #include <vector>
 #include <configuration.hpp>
 #include <passwords.hpp>
+#include <auth.hpp>
 
 namespace Endpoints {
     void getConfiguration(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept {
@@ -225,6 +226,133 @@ namespace Endpoints {
             nlohmann::json errorJson = {{"status", "error"}, {"message", "An unexpected error occurred"}};
             out << errorJson.dump();
             Logger::error("Unexpected error occurred while removing password");
+        }
+    }
+
+    void login(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept {
+        try {
+            Logger::trace("Login authenication.");
+
+            // Parse JSON from request body
+            nlohmann::json requestBody = nlohmann::json::parse(request.stream());
+
+            // read login and password
+            std::string login = requestBody.at("login").get<std::string>();
+            std::string password = requestBody.at("password").get<std::string>();
+
+            auto user = auth::AuthenticationManager::checkCredentials(login, password);
+
+            if (user.has_value()) {
+                std::string token = auth::AuthenticationManager::generateJWTToken(user.value());
+                
+                // Successful response
+                response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
+                response.setContentType("application/json");
+                nlohmann::json successJson = {
+                    {"status", "success"},
+                    {"message", "Login successful"},
+                    {"token", token},
+                    {"user", {
+                        {"login", login}
+                    }}
+                };
+                
+                std::ostream& out = response.send();
+                out << successJson.dump();
+                Logger::info("User {} successfully authenticated", login);
+            } 
+            else {
+                // Failed authentication
+                response.setStatus(Poco::Net::HTTPResponse::HTTP_UNAUTHORIZED); // 401
+                response.setContentType("application/json");
+                nlohmann::json errorJson = {
+                    {"status", "error"},
+                    {"message", "Invalid credentials"}
+                };
+                
+                std::ostream& out = response.send();
+                out << errorJson.dump();
+                Logger::warn("Failed login attempt for user: {}", login);
+            }
+        }
+        catch (const std::invalid_argument& e) {
+            // Błąd w formacie żądania
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_BAD_REQUEST); // 400
+            response.setContentType("application/json");
+            nlohmann::json errorJson = {
+                {"status", "error"},
+                {"message", "Invalid request format"},
+                {"details", e.what()}
+            };
+            
+            std::ostream& out = response.send();
+            out << errorJson.dump();
+            Logger::error("Bad request format: {}", e.what());
+        }
+        catch (const std::exception& e) {
+            // Ogólny błąd serwera
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR); // 500
+            response.setContentType("application/json");
+            nlohmann::json errorJson = {
+                {"status", "error"},
+                {"message", "Internal server error"},
+                {"details", e.what()}
+            };
+            
+            std::ostream& out = response.send();
+            out << errorJson.dump();
+            Logger::error("Error during authentication: {}", e.what());
+        }
+        catch (...) {
+            // Nieoczekiwany błąd
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            nlohmann::json errorJson = {
+                {"status", "error"},
+                {"message", "An unexpected error occurred"}
+            };
+            
+            std::ostream& out = response.send();
+            out << errorJson.dump();
+            Logger::error("Unexpected error during authentication");
+        }
+    }
+
+    void registerUser(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept {
+        try {
+            Logger::trace("Registering new user.");
+
+            // Parse JSON from request body
+            nlohmann::json requestBody = nlohmann::json::parse(request.stream());
+
+            // Parse and update password
+            auth::AuthenticationManager manager;
+            auto user = auth::User::fromJson(requestBody);
+            manager.addUser(user);
+            
+            // Response
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
+            response.setContentType("application/json");
+            nlohmann::json j = {{"message", "User registered"}};
+            std::ostream& out = response.send();
+            out << j.dump();
+        }
+        catch (const std::exception& e) {
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            std::ostream& out = response.send();
+            nlohmann::json errorJson = {{"status", "error"}, {"message", e.what()}};
+            out << errorJson.dump();
+            Logger::error("Error registering user: {}", e.what());
+        }
+        catch (...) {
+            // Catch any other unexpected exceptions
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            std::ostream& out = response.send();
+            nlohmann::json errorJson = {{"status", "error"}, {"message", "An unexpected error occurred"}};
+            out << errorJson.dump();
+            Logger::error("Unexpected error occurred while registering user");
         }
     }
 }

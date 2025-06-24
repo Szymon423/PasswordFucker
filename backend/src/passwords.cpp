@@ -2,11 +2,13 @@
 
 #include <passwords.hpp>
 #include <utilities.hpp>
+#include <database-manager.hpp>
 
 namespace pass {
     nlohmann::json Password::toJson() const {
         return {
             { "id", id },
+            { "userId", userId },
             { "login", login },
             { "password", password },
             { "name", name },
@@ -20,37 +22,36 @@ namespace pass {
     Password Password::fromJson(const nlohmann::json& password) {
         Password pass;
         pass.id = password.at("id").get<std::uint32_t>();
+        pass.userId = password.at("userId").get<std::uint32_t>();
         pass.login = password.at("login").get<std::string>();
         pass.password = password.at("password").get<std::string>();
         pass.name = password.at("name").get<std::string>();
         pass.url = password.at("url").get<std::string>();
         pass.notes = password.at("notes").get<std::string>();
-        pass.createdAt = util::time::fromString(password.at("createdAt").get<std::string>());
-        pass.updatedAt = util::time::fromString(password.at("updatedAt").get<std::string>());
+        try {
+            pass.createdAt = util::time::fromString(password.at("createdAt").get<std::string>());
+        }
+        catch (const std::runtime_error& e) {
+            pass.createdAt = std::chrono::system_clock::now();
+        }
+        try {
+            pass.updatedAt = util::time::fromString(password.at("updatedAt").get<std::string>());
+        }
+        catch (const std::runtime_error& e) {
+            pass.updatedAt = std::chrono::system_clock::now();
+        }
         return pass;
     }
 
-    SQLitePasswordRepository::SQLitePasswordRepository(const std::filesystem::path& dbPath) {
+    SQLitePasswordRepository::SQLitePasswordRepository() {
         try {
-            // Ensure directory exists
-            auto dir = dbPath.parent_path();
-            if (!dir.empty()) {
-                std::filesystem::create_directories(dir);
-            }
-
             // Open or create database
-            db = std::make_unique<SQLite::Database>(
-                dbPath.string(), 
-                SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE
-            );
+            db = DatabaseManager::getInstance().getDatabase();
 
             initializeDatabase();
         }
         catch (const SQLite::Exception& e) {
             throw std::runtime_error("Failed to open database: " + std::string(e.what()));
-        }
-        catch (const std::filesystem::filesystem_error& e) {
-            throw std::runtime_error("Failed to create database directory: " + std::string(e.what()));
         }
     }
 
@@ -58,6 +59,7 @@ namespace pass {
         db->exec(R"(
             CREATE TABLE IF NOT EXISTS passwords (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                userId INTEGER NOT NULL,
                 login TEXT NOT NULL,
                 password TEXT NOT NULL,
                 name TEXT NOT NULL,
@@ -69,19 +71,20 @@ namespace pass {
         )");
     }
 
-    SQLitePasswordRepository& SQLitePasswordRepository::getInstance(const std::filesystem::path& dbPath) {
-        static SQLitePasswordRepository instance(dbPath);
+    SQLitePasswordRepository& SQLitePasswordRepository::getInstance() {
+        static SQLitePasswordRepository instance;
         return instance;
     }
 
     std::list<Password> SQLitePasswordRepository::getAll() {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::mutex> lock(DatabaseManager::getInstance().getMutex());
         std::list<Password> passwords;
         
         SQLite::Statement query(*db, "SELECT * FROM passwords");
         while (query.executeStep()) {
             Password p;
             p.id = query.getColumn("id").getUInt();
+            p.userId = query.getColumn("userId").getUInt();
             p.login = query.getColumn("login").getString();
             p.password = query.getColumn("password").getString();
             p.name = query.getColumn("name").getString();
@@ -96,7 +99,7 @@ namespace pass {
     }
 
     std::optional<Password> SQLitePasswordRepository::getById(const std::uint32_t& id) {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::mutex> lock(DatabaseManager::getInstance().getMutex());
         
         SQLite::Statement query(*db, "SELECT * FROM passwords WHERE id = ?");
         query.bind(1, static_cast<int64_t>(id));
@@ -104,6 +107,7 @@ namespace pass {
         if (query.executeStep()) {
             Password p;
             p.id = query.getColumn("id").getUInt();
+            p.userId = query.getColumn("userId").getUInt();
             p.login = query.getColumn("login").getString();
             p.password = query.getColumn("password").getString();
             p.name = query.getColumn("name").getString();
@@ -119,50 +123,52 @@ namespace pass {
     }
 
     void SQLitePasswordRepository::add(Password& password) {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::mutex> lock(DatabaseManager::getInstance().getMutex());
         
         SQLite::Statement query(*db, 
-            "INSERT INTO passwords (login, password, name, url, notes, createdAt, updatedAt) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO passwords (login, userId, password, name, url, notes, createdAt, updatedAt) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         
         auto now = std::chrono::system_clock::now();
         password.createdAt = now;
         password.updatedAt = now;
         
         query.bind(1, password.login);
-        query.bind(2, password.password);
-        query.bind(3, password.name);
-        query.bind(4, password.url);
-        query.bind(5, password.notes);
-        query.bind(6, util::time::toString(password.createdAt));
-        query.bind(7, util::time::toString(password.updatedAt));
+        query.bind(2, password.userId);
+        query.bind(3, password.password);
+        query.bind(4, password.name);
+        query.bind(5, password.url);
+        query.bind(6, password.notes);
+        query.bind(7, util::time::toString(password.createdAt));
+        query.bind(8, util::time::toString(password.updatedAt));
         
         query.exec();
         password.id = static_cast<std::uint32_t>(db->getLastInsertRowid());
     }
 
     void SQLitePasswordRepository::update(const Password& password) {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::mutex> lock(DatabaseManager::getInstance().getMutex());
         
         SQLite::Statement query(*db,
-            "UPDATE passwords SET login = ?, password = ?, name = ?, "
+            "UPDATE passwords SET login = ?, userId = ?, password = ?, name = ?, "
             "url = ?, notes = ?, updatedAt = ? WHERE id = ?");
         
         auto now = std::chrono::system_clock::now();
         
         query.bind(1, password.login);
-        query.bind(2, password.password);
-        query.bind(3, password.name);
-        query.bind(4, password.url);
-        query.bind(5, password.notes);
-        query.bind(6, util::time::toString(now));
-        query.bind(7, static_cast<int64_t>(password.id));
+        query.bind(2, password.userId);
+        query.bind(3, password.password);
+        query.bind(4, password.name);
+        query.bind(5, password.url);
+        query.bind(6, password.notes);
+        query.bind(7, util::time::toString(now));
+        query.bind(8, static_cast<int64_t>(password.id));
         
         query.exec();
     }
 
     void SQLitePasswordRepository::remove(const std::uint32_t id) {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<std::mutex> lock(DatabaseManager::getInstance().getMutex());
         
         SQLite::Statement query(*db, "DELETE FROM passwords WHERE id = ?");
         query.bind(1, static_cast<int64_t>(id));
@@ -171,13 +177,8 @@ namespace pass {
 
     std::filesystem::path PasswordManager::dbPath;
 
-    void PasswordManager::initialize(const std::filesystem::path& databasePath) {
-        dbPath = databasePath;
-    }
-
     // PasswordManager implementation
-    PasswordManager::PasswordManager()
-        : repo(SQLitePasswordRepository::getInstance(dbPath)) {}
+    PasswordManager::PasswordManager() : repo(SQLitePasswordRepository::getInstance()) {}
 
     std::list<Password> PasswordManager::getAllPasswords() {
         return repo.getAll();

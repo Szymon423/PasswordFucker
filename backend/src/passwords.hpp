@@ -11,6 +11,7 @@
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <SQLiteCpp/SQLiteCpp.h>
+#include <database-manager.hpp>
 
 /// @brief Namespace of password related stuff
 namespace pass {
@@ -18,6 +19,7 @@ namespace pass {
     class Password {
     public:
         std::uint32_t id;       // ID of entry
+        std::uint32_t userId;   // ID of user owning this password
         std::string login;      // Login to be used with password
         std::string password;   // Password to be used with login
         std::string name;       // Name to be displayed with Password
@@ -67,26 +69,18 @@ namespace pass {
     /// @brief Thread-safe SQLite repository for password storing implementing Singleton pattern
     class SQLitePasswordRepository : public IPasswordRepository {
     private:
-        std::unique_ptr<SQLite::Database> db;   // Pointer to database
-        mutable std::mutex mutex;               // Mutex for thread-safe operations
+        std::shared_ptr<SQLite::Database> db;   // Pointer to database
 
         /// @brief Private constructor for Singleton pattern
-        /// @param dbPath Path to database file
-        explicit SQLitePasswordRepository(const std::filesystem::path& dbPath);
+        explicit SQLitePasswordRepository();
         
         /// @brief Private destructor
         ~SQLitePasswordRepository() = default;
         
-        /// @brief Delete copy constructor
+        /// @brief Delete copy, assignment, move, move assignment constructor
         SQLitePasswordRepository(const SQLitePasswordRepository&) = delete;
-        
-        /// @brief Delete assignment operator
         SQLitePasswordRepository& operator=(const SQLitePasswordRepository&) = delete;
-        
-        /// @brief Delete move constructor
         SQLitePasswordRepository(SQLitePasswordRepository&&) = delete;
-        
-        /// @brief Delete move assignment operator
         SQLitePasswordRepository& operator=(SQLitePasswordRepository&&) = delete;
 
         /// @brief Initialize database schema
@@ -96,7 +90,7 @@ namespace pass {
         /// @brief Get singleton instance of repository
         /// @param dbPath Path to database file (used only on first call)
         /// @return Reference to repository instance
-        static SQLitePasswordRepository& getInstance(const std::filesystem::path& dbPath = "passwords.db");
+        static SQLitePasswordRepository& getInstance();
 
         /// @brief Get all passwords from repository
         /// @return List of all passwords
@@ -125,7 +119,7 @@ namespace pass {
         /// @return Result of operation
         template<typename Func>
         auto executeOperation(Func operation) {
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::mutex> lock(DatabaseManager::getInstance().getMutex());
             return operation(db.get());
         }
     };
@@ -137,10 +131,7 @@ namespace pass {
         static std::filesystem::path dbPath;
         
     public:
-        static void initialize(const std::filesystem::path& databasePath = "passwords.db");
-
         /// @brief Constructor
-        /// @param dbPath Path to database file
         explicit PasswordManager();
 
         /// @brief Get all passwords

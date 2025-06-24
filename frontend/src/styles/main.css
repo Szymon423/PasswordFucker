@@ -1,59 +1,255 @@
+/* ---------- Variables ---------- */
 :root {
-	--bg-primary: #1e1e1e;
-	--bg-secondary: #252526;
-	--bg-tertiary: #333333;
-	--text-primary: #ffffff;
-	--text-secondary: #cccccc;
-	--accent-color: #007acc;
-	--border-color: #474747;
+	/* Colors */
+	--bg-primary: #1a1a1a;
+	--bg-secondary: #2d2d2d;
+	--bg-tertiary: #363636;
+	--bg-hover: #404040;
+
+	/* Accent colors */
+	--accent-primary: #3b82f6;
+	--accent-secondary: #6366f1;
+	--accent-success: #22c55e;
+	--accent-error: #ef4444;
+	--accent-warning: #f59e0b;
+
+	/* Text colors */
+	--text-primary: #e2e8f0;
+	--text-secondary: #94a3b8;
+	--text-muted: #64748b;
+
+	/* Border colors */
+	--border-color: #404040;
+
+	/* Shadow */
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+	--shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+	--shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+
+	/* Border radius */
+	--radius-sm: 4px;
+	--radius-md: 8px;
+	--radius-lg: 12px;
+
+	/* Spacing */
+	--spacing-xs: 0.5rem;
+	--spacing-sm: 1rem;
+	--spacing-md: 1.5rem;
+	--spacing-lg: 2rem;
+
+	/* Button colors */
+	--button-disabled: #404040;
+	--button-green: #059669;
+	--button-green-hover: #036848;
+
+	--button-grey: #94a3b8;
+	--button-grey-hover: #64748b;
+
+	--button-red: #ef4444;
+	--button-red-hover: #b83434;
+
+	--button-yellow: #efb550;
+	--button-yellow-hover: #be9041;
+}
+
+/* ---------- Global Styles ---------- */
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
 }
 
 body {
-	margin: 0;
-	padding: 0;
-	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 	background-color: var(--bg-primary);
 	color: var(--text-primary);
+	font-family: 'Inter', sans-serif;
+	line-height: 1.5;
 }
 
-.nav-link {
-	color: var(--text-secondary);
-	text-decoration: none;
-	padding: 10px 20px;
-	display: block;
-	transition: background-color 0.2s;
+/* ---------- Typography ---------- */
+h1 {
+	font-size: 2rem;
+	font-weight: 600;
+	margin-bottom: var(--spacing-md);
 }
 
-.nav-link:hover {
-	background-color: var(--bg-tertiary);
+h2 {
+	font-size: 1.5rem;
+	font-weight: 600;
+	margin-bottom: var(--spacing-sm);
 }
 
-.nav-link.active {
-	background-color: var(--bg-tertiary);
-	color: var(--text-primary);
-	border-left: 3px solid var(--accent-color);
+/* ---------- Layout Components ---------- */
+.container {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 0 var(--spacing-md);
 }
 
-.form-input {
+/* ---------- Forms ---------- */
+.form-group {
+	margin-bottom: var(--spacing-md);
+}
+
+input,
+textarea,
+select {
+	width: 100%;
+	padding: 0.75rem 1rem;
 	background-color: var(--bg-tertiary);
 	border: 1px solid var(--border-color);
+	border-radius: var(--radius-md);
 	color: var(--text-primary);
-	padding: 8px 12px;
-	border-radius: 4px;
+	transition: all 0.2s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+	outline: none;
+	border-color: var(--accent-primary);
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.75rem 1rem;
+	border-radius: var(--radius-sm);
+	font-weight: 500;
+	font-size: 1rem;
+	transition: all 0.2s ease;
+	cursor: pointer;
+	gap: 0.5rem;
 	width: 100%;
+}
+
+.btn-primary {
+	background-color: var(--accent-primary);
+	color: white;
+}
+
+.btn-primary:hover {
+	background-color: var(--accent-secondary);
+}
+
+.btn-secondary {
+	background-color: var(--bg-secondary);
+	color: var(--text-primary);
+	border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+	background-color: var(--bg-hover);
+}
+
+/* ---------- Table Styles ---------- */
+.table-container {
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-sm);
+	overflow: hidden;
+	margin: var(--spacing-md) 0;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+th {
+	background-color: var(--bg-tertiary);
+	padding: var(--spacing-sm);
+	text-align: left;
+	font-weight: 600;
+	color: var(--text-secondary);
+}
+
+td {
+	padding: var(--spacing-sm);
+	border-bottom: 1px solid var(--border-color);
+}
+
+tr:hover {
+	background-color: var(--bg-hover);
+}
+
+/* ---------- Cards ---------- */
+.card {
+	background-color: var(--bg-secondary);
+	border-radius: var(--radius-lg);
+	padding: var(--spacing-md);
+	box-shadow: var(--shadow-md);
+}
+
+/* ---------- Icons ---------- */
+.icon {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.5rem;
+	border-radius: var(--radius-md);
+	background: transparent;
+	color: var(--text-secondary);
+	transition: all 0.2s ease;
+}
+
+.icon-button:hover {
+	background-color: var(--bg-hover);
+	color: var(--text-primary);
+}
+
+/* ---------- Search Bar ---------- */
+.search-wrapper {
+	position: relative;
+	width: 100%;
+	max-width: 400px;
+}
+
+.search-input {
+	padding-left: 2.5rem;
+	background-color: var(--bg-tertiary);
+}
+
+.search-icon {
+	position: absolute;
+	left: 0.75rem;
+	top: 50%;
+	transform: translateY(-50%);
+	color: var(--text-secondary);
+}
+
+/* ---------- Utilities ---------- */
+.flex {
+	display: flex;
+}
+
+.items-center {
+	align-items: center;
+}
+
+.justify-between {
+	justify-content: space-between;
+}
+
+.gap-2 {
+	gap: 0.5rem;
+}
+
+.gap-4 {
+	gap: 1rem;
+}
+
+.mb-4 {
 	margin-bottom: 1rem;
 }
 
-.btn {
-	background-color: var(--accent-color);
-	color: var(--text-primary);
-	border: none;
-	padding: 8px 16px;
-	border-radius: 4px;
-	cursor: pointer;
-	transition: opacity 0.2s;
-}
-
-.btn:hover {
-	opacity: 0.9;
+.mt-4 {
+	margin-top: 1rem;
 }

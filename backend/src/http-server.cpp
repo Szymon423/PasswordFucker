@@ -15,7 +15,9 @@ std::map<std::pair<std::string, std::string>, MyRequestHandler::RouteHandler> My
     {{"GET",  "/api/passwords/get"}, std::bind(&Endpoints::getPasswords, std::placeholders::_1, std::placeholders::_2)},
     {{"POST", "/api/passwords/add"}, std::bind(&Endpoints::addPassword, std::placeholders::_1, std::placeholders::_2)},
     {{"POST", "/api/passwords/update"}, std::bind(&Endpoints::updatePassword, std::placeholders::_1, std::placeholders::_2)},
-    {{"POST", "/api/passwords/delete"}, std::bind(&Endpoints::removePassword, std::placeholders::_1, std::placeholders::_2)}
+    {{"POST", "/api/passwords/delete"}, std::bind(&Endpoints::removePassword, std::placeholders::_1, std::placeholders::_2)},
+    {{"POST", "/api/authentication/login"}, std::bind(&Endpoints::login, std::placeholders::_1, std::placeholders::_2)},
+    {{"POST", "/api/authentication/register"}, std::bind(&Endpoints::registerUser, std::placeholders::_1, std::placeholders::_2)}
 };
 
 void MyRequestHandler::handleRequest(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) {

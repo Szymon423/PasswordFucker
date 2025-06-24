@@ -10,6 +10,7 @@ target_link_libraries(PasswordFucker_lib PRIVATE
     spdlog::spdlog
     Poco::Net
 	Poco::Util
+	Poco::JWT
     ws2_32
     kernel32
     SQLiteCpp

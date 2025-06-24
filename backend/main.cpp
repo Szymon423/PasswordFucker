@@ -5,6 +5,8 @@
 #include <http-server.hpp>
 #include <utilities.hpp>
 #include <passwords.hpp>
+#include <database-manager.hpp>
+#include <auth.hpp>
 
 int main() {
     // Initialize logger
@@ -31,8 +33,16 @@ int main() {
         config::saveConfiguration(configuration);
     }
 
-    // set propper path to password manager database
-    pass::PasswordManager::initialize(configuration.databasePath);
+    try {
+        DatabaseManager::getInstance().initialize(configuration.databasePath);
+    }
+    catch (const std::runtime_error& e) {
+        Logger::info("Could not initialize database becouse of: {}", e.what());
+        return 1;
+    }
+
+    // Provide secret key
+    auth::AuthenticationManager::setPrivateKey("0123456789ABCDEF0123456789ABCDEF");
 
     // Initialize backend server
     Poco::Net::HTTPServer s(new MyRequestHandlerFactory, configuration.backendServerPort);
