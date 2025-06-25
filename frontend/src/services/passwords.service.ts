@@ -16,6 +16,23 @@ export interface Password {
 	updatedAt: string;
 }
 
+export interface PasswordOptions {
+	minimalLength: number
+	includeUppercase: boolean
+	includeLowercase: boolean
+	includeDigits: boolean
+	includeSpecialCharacters: boolean
+	uppercaseMinimalNumber: number
+	lowercaseMinimalNumber: number
+	digitsMinimalNumber: number
+	specialCharactersMinimalNumber: number
+	forbiddenCharacters: string
+}
+
+interface GeneratePasswordResponse {
+	password: string;
+}
+
 class PasswordsService {
 	private readonly baseUrl: string;
 
@@ -45,6 +62,36 @@ class PasswordsService {
 			updatedAt: ''
         };
     }
+
+	getDefaultPasswordOptions(): PasswordOptions {
+        return {
+			minimalLength: 10,
+			includeUppercase: true,
+			includeLowercase: true,
+			includeDigits: true,
+			includeSpecialCharacters: true,
+			uppercaseMinimalNumber: 2,
+			lowercaseMinimalNumber: 4,
+			digitsMinimalNumber: 2,
+			specialCharactersMinimalNumber: 2,
+			forbiddenCharacters: ""
+        };
+    }
+
+	// Dodawanie nowego hasła
+	async generatePassword(options: PasswordOptions): Promise<string> {
+		try {
+			const response = await axios.post<GeneratePasswordResponse>(
+				`${this.baseUrl}/generate`, 
+				options, 
+				this.getAuthHeaders()
+			);
+			return response.data.password;
+		} catch (error) {
+			this.handleError(error);
+			return '';
+		}
+	}
 
 	// Pobieranie wszystkich haseł użytkownika
 	async getAllPasswords(): Promise<Password[]> {

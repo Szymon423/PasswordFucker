@@ -16,6 +16,11 @@ namespace Endpoints {
     /// @param response HTTP response
     void updateConfiguration(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept;
 
+    /// @brief Function to generate password
+    /// @param request HTTP request
+    /// @param response HTTP response
+    void generatePassword(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept;
+
     /// @brief Reads all passwords
     /// @param request HTTP request
     /// @param response HTTP response

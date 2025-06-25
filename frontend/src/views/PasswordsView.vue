@@ -75,79 +75,169 @@
 
 				<div class="form-group">
 					<label for="name">Name:</label>
-					<input type="text" id="name" v-model="mutablePassword.name" class="form-input"/>
+					<input type="text" id="name" v-model="mutablePassword.name" class="form-input" />
 				</div>
 
 				<div class="form-group">
 					<label for="login">Login:</label>
-					<input type="text" id="login" v-model="mutablePassword.login" class="form-input"/>
+					<input type="text" id="login" v-model="mutablePassword.login" class="form-input" />
 				</div>
 
 				<div class="form-group">
 					<label for="password">Password:</label>
-					<input type="password" id="password" v-model="mutablePassword.password" class="form-input"/>
+					<div class="password-input-wrapper">
+						<input :type="passwordVisible ? 'text' : 'password'" id="password"
+							v-model="mutablePassword.password" class="form-input" />
+
+						<button type="button" class="icon-button" @click="passwordVisible = !passwordVisible">
+							<Eye v-if="!passwordVisible" class="icon" />
+							<EyeOff v-else class="icon" />
+						</button>
+
+						<button type="button" class="icon-button generate-password" @click="generatePassword"
+							title="Generate password">
+							<Wand2 class="icon" />
+						</button>
+
+						<button type="button" class="icon-button"
+							@click="passwordOptionsVisible = !passwordOptionsVisible" title="Show password options">
+							<ChevronDown v-if="!passwordOptionsVisible" class="icon" />
+							<ChevronUp v-else class="icon" />
+						</button>
+					</div>
 				</div>
 
-				<div class="form-group">
-					<label for="url">URL:</label>
-					<input type="text" id="url" v-model="mutablePassword.url" class="form-input"/>
-				</div>
+				<div v-if="passwordOptionsVisible" class="password-options-container">
+					<!-- Długość hasła -->
+					<div class="option-row">
+						<label for="password-length">Password length:</label>
+						<div class="two-controls" id="password-length">
+							<input type="range" v-model="passwordOptions.minimalLength" min="4" max="64"
+								class="slider" />
+							<span class="counter">{{ passwordOptions.minimalLength }}</span>
+						</div>
+					</div>
 
-				<div class="form-group">
-					<label for="notes">Notes:</label>
-					<input type="text" id="notes" v-model="mutablePassword.notes" class="form-input"/>
-				</div>
+					<!-- Wielkie litery -->
+					<div class="option-row">
+						<label>Uppercase letters:</label>
+						<div class="controls">
+							<input type="checkbox" v-model="passwordOptions.includeUppercase" />
+							<input type="range" v-model="passwordOptions.uppercaseMinimalNumber" min="0" max="64"
+								:disabled="!passwordOptions.includeUppercase" class="slider" />
+							<span class="counter">{{ passwordOptions.uppercaseMinimalNumber }}</span>
+						</div>
+					</div>
 
-				<div class="modal-buttons">
-					<button v-if="addEditMode === 'add'" class="btn btn-add" @click="addPassword">
-						<Save class="icon" />
-						Add
-					</button>
-					<button v-if="addEditMode === 'edit'" class="btn btn-edit" @click="editPassword">
-						<Save class="icon" />
-						Edit
-					</button>
-					<button type="button" @click="showAddEditPasswordModal = false" class="btn btn-cancel">
-						<X class="icon" />
-						Cancel
-					</button>
-				</div>
+					<!-- Małe litery -->
+					<div class="option-row">
+						<label>Lowercase letters:</label>
+						<div class="controls">
+							<input type="checkbox" v-model="passwordOptions.includeLowercase" />
+							<input type="range" v-model="passwordOptions.lowercaseMinimalNumber" min="0" max="64"
+								:disabled="!passwordOptions.includeLowercase" class="slider" />
+							<span class="counter">{{ passwordOptions.lowercaseMinimalNumber }}</span>
+						</div>
+					</div>
+
+					<!-- Cyfry -->
+					<div class="option-row">
+						<label>Digits:</label>
+						<div class="controls">
+							<input type="checkbox" v-model="passwordOptions.includeDigits" />
+							<input type="range" v-model="passwordOptions.digitsMinimalNumber" min="0" max="64"
+								:disabled="!passwordOptions.includeDigits" class="slider" />
+							<span class="counter">{{ passwordOptions.digitsMinimalNumber }}</span>
+						</div>
+					</div>
+
+					<!-- Znaki specjalne -->
+					<div class="option-row">
+						<label>Special characters:</label>
+						<div class="controls">
+							<input type="checkbox" v-model="passwordOptions.includeSpecialCharacters" />
+							<input type="range" v-model="passwordOptions.specialCharactersMinimalNumber" min="0" max="64"
+								:disabled="!passwordOptions.includeSpecialCharacters" class="slider" />
+							<span class="counter">{{ passwordOptions.specialCharactersMinimalNumber }}</span>
+						</div>
+					</div>
+
+					<!-- Znaki zabronione -->
+					<div class="form-group">
+						<label for="forbidden-chars">Forbidden characters:</label>
+						<input type="text" id="forbidden-chars" v-model="passwordOptions.forbiddenCharacters" class="form-input" />
+					</div>
+			</div>
+
+			<div class="form-group">
+				<label for="login">Login:</label>
+				<input type="text" id="login" v-model="mutablePassword.login" class="form-input" />
+			</div>
+
+			<div class="form-group">
+				<label for="url">URL:</label>
+				<input type="text" id="url" v-model="mutablePassword.url" class="form-input" />
+			</div>
+
+			<div class="form-group">
+				<label for="notes">Notes:</label>
+				<input type="text" id="notes" v-model="mutablePassword.notes" class="form-input" />
+			</div>
+
+			<div class="modal-buttons">
+				<button v-if="addEditMode === 'add'" class="btn btn-add" @click="addPassword">
+					<Save class="icon" />
+					Add
+				</button>
+				<button v-if="addEditMode === 'edit'" class="btn btn-edit" @click="editPassword">
+					<Save class="icon" />
+					Edit
+				</button>
+				<button type="button" @click="showAddEditPasswordModal = false" class="btn btn-cancel">
+					<X class="icon" />
+					Cancel
+				</button>
 			</div>
 		</div>
+	</div>
 
-		<!-- Modal do potwierdzenia usunięcia -->
-		<div v-if="showDeleteModal" class="modal">
-			<div class="modal-content">
-				<h2>Confirm deletion</h2>
-				<p>Are you sure you want to delete this password?</p>
-				<div class="modal-buttons">
-					<button @click="deletePassword" class="btn btn-delete">
-						<Trash class="icon" />
-						Delete
-					</button>
-					<button @click="showDeleteModal = false" class="btn btn-cancel">
-						<X class="icon" />
-						Cancel
-					</button>
-				</div>
+	<!-- Modal do potwierdzenia usunięcia -->
+	<div v-if="showDeleteModal" class="modal">
+		<div class="modal-content">
+			<h2>Confirm deletion</h2>
+			<p>Are you sure you want to delete this password?</p>
+			<div class="modal-buttons">
+				<button @click="deletePassword" class="btn btn-delete">
+					<Trash class="icon" />
+					Delete
+				</button>
+				<button @click="showDeleteModal = false" class="btn btn-cancel">
+					<X class="icon" />
+					Cancel
+				</button>
 			</div>
 		</div>
+	</div>
 	</div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { Password, passwordsService } from '@/services/passwords.service';
+import { type Password, type PasswordOptions, passwordsService } from '@/services/passwords.service';
 import {
 	PlusCircle,
 	Search,
 	Copy,
 	Eye,
+	EyeOff,
 	Key,
 	Edit,
 	Trash,
 	Save,
-	X
+	X,
+	Wand2,
+	ChevronDown,
+	ChevronUp
 } from 'lucide-vue-next';
 import { toast } from 'vue3-toastify'
 
@@ -158,6 +248,9 @@ const selectedPassword = ref<Password | null>(null);
 const mutablePassword = ref<Password>(passwordsService.getDefaultPassword());
 const showAddEditPasswordModal = ref(false);
 const addEditMode = ref('add');
+const passwordVisible = ref(false);
+const passwordOptionsVisible = ref(false);
+const passwordOptions = ref<PasswordOptions>(passwordsService.getDefaultPasswordOptions());
 
 // Pobieranie haseł
 const fetchPasswords = async () => {
@@ -188,7 +281,7 @@ const addPassword = async () => {
 		toast.error('Error upon password adding')
 	} finally {
 		fetchPasswords();
-	}	
+	}
 };
 
 const editPassword = async () => {
@@ -206,25 +299,37 @@ const editPassword = async () => {
 		else {
 			await passwordsService.updatePassword(mutablePassword.value);
 			showAddEditPasswordModal.value = false;
+			toast.success('Password updated successfully');
 		}
 	} catch (error) {
 		toast.error('Error upon password updating')
 	} finally {
 		fetchPasswords();
-	}	
+	}
 };
 
 // Usuwanie hasła
 const deletePassword = async () => {
 	if (selectedPassword.value) {
 		try {
-			const success = await passwordsService.deletePassword(selectedPassword.value);
+			await passwordsService.deletePassword(selectedPassword.value);
+			toast.success('Password was deleted successfully');
 		} catch (error) {
 			toast.error('Error upon password removal')
 		} finally {
 			fetchPasswords();
 			showDeleteModal.value = false;
-		}	
+		}
+	}
+};
+
+// Generowanie hasła
+const generatePassword = async () => {
+	try {
+		const newPassword = await passwordsService.generatePassword(passwordsService.getDefaultPasswordOptions());
+		mutablePassword.value.password = newPassword;
+	} catch (error) {
+		toast.error('Error upon password generation')
 	}
 };
 
@@ -261,7 +366,7 @@ function openEditPassword(password: Password) {
 }
 
 function openAddPassword() {
-	mutablePassword.value = { 
+	mutablePassword.value = {
 		id: 0,
 		userId: 0,
 		login: '',
@@ -317,7 +422,9 @@ onMounted(() => {
 	overflow-x: auto;
 }
 
-.col-name, .col-login, .col-url {
+.col-name,
+.col-login,
+.col-url {
 	width: 30%;
 }
 
@@ -483,6 +590,33 @@ onMounted(() => {
 	border-radius: 4px;
 }
 
+.password-input-wrapper {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	width: 100%;
+}
+
+.password-input-wrapper input {
+	flex: 1;
+}
+
+.password-input-wrapper .icon-button {
+	padding: 0.5rem;
+	background-color: var(--bg-primary);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	color: var(--text-primary);
+}
+
+.password-input-wrapper .icon-button:hover {
+	background-color: var(--bg-hover);
+}
+
+.generate-password {
+	color: var(--accent-primary);
+}
+
 .modal-buttons {
 	display: flex;
 	justify-content: flex-end;
@@ -491,9 +625,9 @@ onMounted(() => {
 }
 
 .icon {
-    width: 16px;
-    height: 16px;
-    margin-right: 4px;
+	width: 16px;
+	height: 16px;
+	margin-right: 4px;
 }
 
 .url-link {
@@ -501,27 +635,81 @@ onMounted(() => {
 }
 
 .search-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
+	position: relative;
+	display: flex;
+	align-items: center;
 }
 
 .search-icon {
-    position: absolute;
-    left: 8px;
-    width: 16px;
-    height: 16px;
-    color: var(--text-secondary);
+	position: absolute;
+	left: 8px;
+	width: 16px;
+	height: 16px;
+	color: var(--text-secondary);
 }
 
 .search-input {
-    padding-left: 32px; /* Miejsce na ikonę */
+	padding-left: 32px;
 }
 
 /* Przyciski z ikonami */
 .icon-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
+
+/* Password options */
+.password-options-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+	border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-secondary);
+	margin: 1rem 0;
+}
+
+.option-row {
+    display: block;
+    align-items: center;
+    gap: 1rem;
+}
+
+.option-row label {
+	margin-bottom: 0.5rem;
+}
+
+.controls {
+    display: grid;
+	grid-template-columns: 1fr 10fr 1fr;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.two-controls {
+	display: grid;
+	grid-template-columns: 11fr 1fr;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.slider {
+    width: 100%;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    outline: none;
+}
+
+.counter {
+    background-color: var(--bg-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
 </style>

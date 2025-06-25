@@ -3,6 +3,8 @@
 #include <passwords.hpp>
 #include <utilities.hpp>
 #include <database-manager.hpp>
+#include <tuple>
+#include <random>
 
 namespace pass {
     nlohmann::json Password::toJson() const {
@@ -198,5 +200,155 @@ namespace pass {
 
     void PasswordManager::removePassword(const std::uint32_t id) {
         repo.remove(id);
+    }
+
+    nlohmann::json PasswordGenerator::Options::toJson() const {
+        return {
+            { "minimalLength", minimalLength },
+            { "includeUppercase", includeUppercase },
+            { "includeLowercase", includeLowercase },
+            { "includeDigits", includeDigits },
+            { "includeSpecialCharacters", includeSpecialCharacters },
+            { "uppercaseMinimalNumber", uppercaseMinimalNumber },
+            { "lowercaseMinimalNumber", lowercaseMinimalNumber },
+            { "digitsMinimalNumber", digitsMinimalNumber },
+            { "specialCharactersMinimalNumber", specialCharactersMinimalNumber },
+            { "forbiddenCharacters", forbiddenCharacters }
+        };
+    }
+
+    PasswordGenerator::Options PasswordGenerator::Options::fromJson(const nlohmann::json& options) {
+        PasswordGenerator::Options opt;
+        opt.minimalLength = options.value("minimalLength", 12);
+        opt.includeUppercase = options.value("includeUppercase", true);
+        opt.includeLowercase = options.value("includeLowercase", true);
+        opt.includeDigits = options.value("includeDigits", true);
+        opt.includeSpecialCharacters = options.value("includeSpecialCharacters", true); 
+        opt.uppercaseMinimalNumber = options.value("uppercaseMinimalNumber", 1);
+        opt.lowercaseMinimalNumber = options.value("lowercaseMinimalNumber", 1);    
+        opt.digitsMinimalNumber = options.value("digitsMinimalNumber", 1);
+        opt.specialCharactersMinimalNumber = options.value("specialCharactersMinimalNumber", 1);
+        opt.forbiddenCharacters = options.value("forbiddenCharacters", "");
+        return opt;
+    }
+
+    std::string PasswordGenerator::generate(const PasswordGenerator::Options& options) {
+        // Define character sets
+        static constexpr std::string_view uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        static constexpr std::string_view lowercase = "abcdefghijklmnopqrstuvwxyz";
+        static constexpr std::string_view digits = "0123456789";
+        static constexpr std::string_view specialCharacters = "!@#$%^&*()-_=+[]{}|;:,.<>?";
+        
+        // Validate options
+        validateOptions(options);
+
+        thread_local std::random_device rd;
+        thread_local std::mt19937 gen(rd());
+
+        // Lambda for checing if a character is allowed based on the forbidden characters
+        auto checkIfAllowed = [&options](const char c) -> bool {
+            return options.forbiddenCharacters.find(c) == std::string::npos;
+        };
+
+        std::string uppercaseChars;
+        std::string lowercaseChars;
+        std::string digitChars;
+        std::string specialChars;
+        std::array<std::tuple<std::string_view, bool, std::uint8_t, std::string*>, 4> charSets = {
+            std::make_tuple(uppercase, options.includeUppercase, options.uppercaseMinimalNumber, &uppercaseChars),
+            std::make_tuple(lowercase, options.includeLowercase, options.lowercaseMinimalNumber, &lowercaseChars),
+            std::make_tuple(digits, options.includeDigits, options.digitsMinimalNumber, &digitChars),
+            std::make_tuple(specialCharacters, options.includeSpecialCharacters, options.specialCharactersMinimalNumber, &specialChars)
+        };
+
+        // Prepare final character sets
+        std::vector<std::string> finalCharsSets;
+
+        // Check if at least one character set is included
+        for (const auto& [charSet, include, minimalNumber, output] : charSets) {
+            if (include) {
+                bool hasAllowedChars = false;
+                for (const char c : charSet) {
+                    if (checkIfAllowed(c)) {
+                        hasAllowedChars = true;
+                        break;
+                    }
+                }
+                
+                // If no allowed characters, throw an error
+                // This ensures that if a character set is included, there must be at least one allowed character
+                if (!hasAllowedChars) {
+                    throw std::runtime_error("No allowed characters found in the selected character set.");
+                }
+                
+                // Characters which will be included in the password
+                std::uniform_int_distribution<> charDist(0, charSet.size() - 1);
+                for (std::uint8_t i = 0; i < minimalNumber; ++i) {
+                    auto selectedChar = charSet[charDist(gen)];
+                    std::size_t counter = 0;
+                    while (!checkIfAllowed(selectedChar)) {
+                        selectedChar = charSet[charDist(gen)];
+                        if (++counter > 100) {
+                            throw std::runtime_error("Failed to find an allowed character after 100 attempts.");
+                        }
+                    }
+                    *output += selectedChar;
+                }
+
+                // Add the output to the final character sets
+                if (!output->empty()) {
+                    finalCharsSets.push_back(*output);
+                }
+            }
+        }
+
+        // Compose password
+        std::string password;
+        password.reserve(options.minimalLength);
+
+        // Najpierw dodaj wymagane minimalne liczby znaków
+        for (const auto& charSet : finalCharsSets) {
+            password += charSet;
+        }
+
+        // Dopełnij do wymaganej długości losowymi znakami
+        std::string allAllowedChars;
+        for (const auto& charSet : finalCharsSets) {
+            allAllowedChars += charSet;
+        }
+
+        std::uniform_int_distribution<> distrib(0, allAllowedChars.size() - 1);
+        while (password.length() < options.minimalLength) {
+            password += allAllowedChars[distrib(gen)];
+        }
+
+        // Mieszanie hasła
+        std::shuffle(password.begin(), password.end(), gen);
+
+        return password;
+    }
+
+    void PasswordGenerator::validateOptions(const PasswordGenerator::Options& options) {
+        // Check if at least one character set is selected
+        if (!options.includeUppercase && !options.includeLowercase && 
+            !options.includeDigits && !options.includeSpecialCharacters) {
+            throw std::invalid_argument("At least one character set must be selected");
+        }
+
+        // Check if minimal length is valid
+        uint8_t requiredLength = options.uppercaseMinimalNumber + options.lowercaseMinimalNumber +
+            options.digitsMinimalNumber + options.specialCharactersMinimalNumber;
+    
+        if (options.minimalLength < requiredLength) {
+            throw std::invalid_argument("Minimal length is less than sum of required characters");
+        }
+
+        // Check consistency of minimal numbers
+        if (options.uppercaseMinimalNumber > 0 && !options.includeUppercase ||
+            options.lowercaseMinimalNumber > 0 && !options.includeLowercase ||
+            options.digitsMinimalNumber > 0 && !options.includeDigits ||
+            options.specialCharactersMinimalNumber > 0 && !options.includeSpecialCharacters) {
+            throw std::invalid_argument("Inconsistent character requirements");
+        }
     }
 }

@@ -77,6 +77,47 @@ namespace Endpoints {
         }
     }
 
+    void generatePassword(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept {
+        try {
+            Logger::trace("Generating password.");
+            
+            // Parse password options
+            nlohmann::json requestBody = nlohmann::json::parse(request.stream());
+            auto passwordOptions = pass::PasswordGenerator::Options::fromJson(requestBody);
+
+            // Generate password
+            auto password = pass::PasswordGenerator::generate(passwordOptions);
+            Logger::trace("Generated password: {}", password);
+
+            // Prepare response
+            nlohmann::json resoult;
+            resoult["password"] = password;
+
+            // Response
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
+            response.setContentType("application/json");
+            std::ostream& out = response.send();
+            out << resoult.dump();
+        }
+        catch (const std::exception& e) {
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            std::ostream& out = response.send();
+            nlohmann::json errorJson = { {"status", "error"}, {"message", "Internal server error"} };
+            out << errorJson.dump();
+            Logger::error("Error generating password: {}", e.what());
+        }
+        catch (...) {
+            // Catch any other unexpected exceptions
+            response.setStatus(Poco::Net::HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            std::ostream& out = response.send();
+            nlohmann::json errorJson = {{"status", "error"}, {"message", "An unexpected error occurred"}};
+            out << errorJson.dump();
+            Logger::error("Unexpected error occurred while generating password");
+        }
+    }
+
     void getPasswords(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept {
         try {
             Logger::trace("Reading passwords.");
