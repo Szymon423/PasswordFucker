@@ -18,6 +18,31 @@ namespace pass {
     /// @brief Class with password object
     class Password {
     public:
+        /// @brief Options for password generation
+        class Options {
+        public:
+            std::uint8_t minimalLength;                     // Length of generated password
+            bool includeUppercase;                          // Include uppercase letters
+            bool includeLowercase;                          // Include lowercase letters
+            bool includeDigits;                             // Include digits   
+            bool includeSpecialCharacters;                  // Include special characters
+            std::uint8_t uppercaseMinimalNumber;            // Minimal number of uppercase letters
+            std::uint8_t lowercaseMinimalNumber;            // Minimal number of lowercase letters
+            std::uint8_t digitsMinimalNumber;               // Minimal number of digits
+            std::uint8_t specialCharactersMinimalNumber;    // Minimal number of special characters
+            std::string forbiddenCharacters;                // Forbidden characters in generated password
+        
+            /// @brief Function to convert Options object to Json
+            /// @return json object
+            nlohmann::json toJson() const;
+
+            /// @brief Function to convert Json to Options object
+            /// @param options Json with options
+            /// @return Options object
+            static Options fromJson(const nlohmann::json& options);
+        };
+
+    public:
         std::uint32_t id;       // ID of entry
         std::uint32_t userId;   // ID of user owning this password
         std::string login;      // Login to be used with password
@@ -25,6 +50,7 @@ namespace pass {
         std::string name;       // Name to be displayed with Password
         std::string url;        // URL related to this password
         std::string notes;      // Note associated with Password
+        Options options;        // Options for password generation
         std::chrono::system_clock::time_point createdAt;    // Timestamp of creation
         std::chrono::system_clock::time_point updatedAt;    // Timestamp of last update
         
@@ -168,36 +194,12 @@ namespace pass {
     /// @brief Class for generating passwords
     class PasswordGenerator {
     public:
-        /// @brief Options for password generation
-        class Options {
-        public:
-            std::uint8_t minimalLength;                     // Length of generated password
-            bool includeUppercase;                          // Include uppercase letters
-            bool includeLowercase;                          // Include lowercase letters
-            bool includeDigits;                             // Include digits   
-            bool includeSpecialCharacters;                  // Include special characters
-            std::uint8_t uppercaseMinimalNumber;            // Minimal number of uppercase letters
-            std::uint8_t lowercaseMinimalNumber;            // Minimal number of lowercase letters
-            std::uint8_t digitsMinimalNumber;               // Minimal number of digits
-            std::uint8_t specialCharactersMinimalNumber;    // Minimal number of special characters
-            std::string forbiddenCharacters;                // Forbidden characters in generated password
-        
-            /// @brief Function to convert Options object to Json
-            /// @return json object
-            nlohmann::json toJson() const;
-
-            /// @brief Function to convert Json to Options object
-            /// @param options Json with options
-            /// @return Options object
-            static Options fromJson(const nlohmann::json& options);
-        };
-
         /// @brief Generate password based on given options
         /// @param options Options for password generation
         /// @return Generated password as string
-        static std::string generate(const Options& options);
+        static std::string generate(const Password::Options& options);
 
     private:
-        static void validateOptions(const Options& options);
+        static void validateOptions(const Password::Options& options);
     };
 }

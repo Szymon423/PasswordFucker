@@ -7,6 +7,36 @@
 #include <random>
 
 namespace pass {
+    nlohmann::json Password::Options::toJson() const {
+        return {
+            { "minimalLength", minimalLength },
+            { "includeUppercase", includeUppercase },
+            { "includeLowercase", includeLowercase },
+            { "includeDigits", includeDigits },
+            { "includeSpecialCharacters", includeSpecialCharacters },
+            { "uppercaseMinimalNumber", uppercaseMinimalNumber },
+            { "lowercaseMinimalNumber", lowercaseMinimalNumber },
+            { "digitsMinimalNumber", digitsMinimalNumber },
+            { "specialCharactersMinimalNumber", specialCharactersMinimalNumber },
+            { "forbiddenCharacters", forbiddenCharacters }
+        };
+    }
+
+    Password::Options Password::Options::fromJson(const nlohmann::json& options) {
+        Password::Options opt;
+        opt.minimalLength = options.value("minimalLength", 12);
+        opt.includeUppercase = options.value("includeUppercase", true);
+        opt.includeLowercase = options.value("includeLowercase", true);
+        opt.includeDigits = options.value("includeDigits", true);
+        opt.includeSpecialCharacters = options.value("includeSpecialCharacters", true); 
+        opt.uppercaseMinimalNumber = options.value("uppercaseMinimalNumber", 1);
+        opt.lowercaseMinimalNumber = options.value("lowercaseMinimalNumber", 1);    
+        opt.digitsMinimalNumber = options.value("digitsMinimalNumber", 1);
+        opt.specialCharactersMinimalNumber = options.value("specialCharactersMinimalNumber", 1);
+        opt.forbiddenCharacters = options.value("forbiddenCharacters", "");
+        return opt;
+    }
+
     nlohmann::json Password::toJson() const {
         return {
             { "id", id },
@@ -16,6 +46,7 @@ namespace pass {
             { "name", name },
             { "url", url },
             { "notes", notes },
+            { "options", options.toJson() },
             { "createdAt", util::time::toString(createdAt) },
             { "updatedAt", util::time::toString(updatedAt) }
         };
@@ -30,6 +61,7 @@ namespace pass {
         pass.name = password.at("name").get<std::string>();
         pass.url = password.at("url").get<std::string>();
         pass.notes = password.at("notes").get<std::string>();
+        pass.options = Password::Options::fromJson(password.at("options"));
         try {
             pass.createdAt = util::time::fromString(password.at("createdAt").get<std::string>());
         }
@@ -67,6 +99,7 @@ namespace pass {
                 name TEXT NOT NULL,
                 url TEXT,
                 notes TEXT,
+                options TEXT,
                 createdAt TEXT NOT NULL,
                 updatedAt TEXT NOT NULL
             )
@@ -92,6 +125,7 @@ namespace pass {
             p.name = query.getColumn("name").getString();
             p.url = query.getColumn("url").getString();
             p.notes = query.getColumn("notes").getString();
+            p.options = Password::Options::fromJson(nlohmann::json::parse(query.getColumn("options").getString()));
             p.createdAt = util::time::fromString(query.getColumn("createdAt").getString());
             p.updatedAt = util::time::fromString(query.getColumn("updatedAt").getString());
             passwords.push_back(p);
@@ -115,6 +149,7 @@ namespace pass {
             p.name = query.getColumn("name").getString();
             p.url = query.getColumn("url").getString();
             p.notes = query.getColumn("notes").getString();
+            p.options = Password::Options::fromJson(nlohmann::json::parse(query.getColumn("options").getString()));
             p.createdAt = util::time::fromString(query.getColumn("createdAt").getString());
             p.updatedAt = util::time::fromString(query.getColumn("updatedAt").getString());
             
@@ -128,8 +163,8 @@ namespace pass {
         std::lock_guard<std::mutex> lock(DatabaseManager::getInstance().getMutex());
         
         SQLite::Statement query(*db, 
-            "INSERT INTO passwords (login, userId, password, name, url, notes, createdAt, updatedAt) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            "INSERT INTO passwords (login, userId, password, name, url, notes, options, createdAt, updatedAt) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         
         auto now = std::chrono::system_clock::now();
         password.createdAt = now;
@@ -141,8 +176,9 @@ namespace pass {
         query.bind(4, password.name);
         query.bind(5, password.url);
         query.bind(6, password.notes);
-        query.bind(7, util::time::toString(password.createdAt));
-        query.bind(8, util::time::toString(password.updatedAt));
+        query.bind(7, password.options.toJson().dump());
+        query.bind(8, util::time::toString(password.createdAt));
+        query.bind(9, util::time::toString(password.updatedAt));
         
         query.exec();
         password.id = static_cast<std::uint32_t>(db->getLastInsertRowid());
@@ -153,7 +189,7 @@ namespace pass {
         
         SQLite::Statement query(*db,
             "UPDATE passwords SET login = ?, userId = ?, password = ?, name = ?, "
-            "url = ?, notes = ?, updatedAt = ? WHERE id = ?");
+            "url = ?, notes = ?, options = ?, updatedAt = ? WHERE id = ?");
         
         auto now = std::chrono::system_clock::now();
         
@@ -163,8 +199,9 @@ namespace pass {
         query.bind(4, password.name);
         query.bind(5, password.url);
         query.bind(6, password.notes);
-        query.bind(7, util::time::toString(now));
-        query.bind(8, static_cast<int64_t>(password.id));
+        query.bind(7, password.options.toJson().dump());
+        query.bind(8, util::time::toString(now));
+        query.bind(9, static_cast<int64_t>(password.id));
         
         query.exec();
     }
@@ -202,37 +239,7 @@ namespace pass {
         repo.remove(id);
     }
 
-    nlohmann::json PasswordGenerator::Options::toJson() const {
-        return {
-            { "minimalLength", minimalLength },
-            { "includeUppercase", includeUppercase },
-            { "includeLowercase", includeLowercase },
-            { "includeDigits", includeDigits },
-            { "includeSpecialCharacters", includeSpecialCharacters },
-            { "uppercaseMinimalNumber", uppercaseMinimalNumber },
-            { "lowercaseMinimalNumber", lowercaseMinimalNumber },
-            { "digitsMinimalNumber", digitsMinimalNumber },
-            { "specialCharactersMinimalNumber", specialCharactersMinimalNumber },
-            { "forbiddenCharacters", forbiddenCharacters }
-        };
-    }
-
-    PasswordGenerator::Options PasswordGenerator::Options::fromJson(const nlohmann::json& options) {
-        PasswordGenerator::Options opt;
-        opt.minimalLength = options.value("minimalLength", 12);
-        opt.includeUppercase = options.value("includeUppercase", true);
-        opt.includeLowercase = options.value("includeLowercase", true);
-        opt.includeDigits = options.value("includeDigits", true);
-        opt.includeSpecialCharacters = options.value("includeSpecialCharacters", true); 
-        opt.uppercaseMinimalNumber = options.value("uppercaseMinimalNumber", 1);
-        opt.lowercaseMinimalNumber = options.value("lowercaseMinimalNumber", 1);    
-        opt.digitsMinimalNumber = options.value("digitsMinimalNumber", 1);
-        opt.specialCharactersMinimalNumber = options.value("specialCharactersMinimalNumber", 1);
-        opt.forbiddenCharacters = options.value("forbiddenCharacters", "");
-        return opt;
-    }
-
-    std::string PasswordGenerator::generate(const PasswordGenerator::Options& options) {
+    std::string PasswordGenerator::generate(const Password::Options& options) {
         // Define character sets
         static constexpr std::string_view uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         static constexpr std::string_view lowercase = "abcdefghijklmnopqrstuvwxyz";
@@ -328,7 +335,7 @@ namespace pass {
         return password;
     }
 
-    void PasswordGenerator::validateOptions(const PasswordGenerator::Options& options) {
+    void PasswordGenerator::validateOptions(const Password::Options& options) {
         // Check if at least one character set is selected
         if (!options.includeUppercase && !options.includeLowercase && 
             !options.includeDigits && !options.includeSpecialCharacters) {

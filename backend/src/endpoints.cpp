@@ -83,7 +83,7 @@ namespace Endpoints {
             
             // Parse password options
             nlohmann::json requestBody = nlohmann::json::parse(request.stream());
-            auto passwordOptions = pass::PasswordGenerator::Options::fromJson(requestBody);
+            auto passwordOptions = pass::Password::Options::fromJson(requestBody);
 
             // Generate password
             auto password = pass::PasswordGenerator::generate(passwordOptions);

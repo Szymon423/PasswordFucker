@@ -3,20 +3,8 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
 
-// Interfejs reprezentujący model hasła
-export interface Password {
-	id: number;
-	userId: number;
-	login: string;
-	password: string;
-	name: string;
-	url: string;
-	notes: string;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface PasswordOptions {
+// Interfejsy reprezentujące model hasła
+export interface Options {
 	minimalLength: number
 	includeUppercase: boolean
 	includeLowercase: boolean
@@ -27,6 +15,19 @@ export interface PasswordOptions {
 	digitsMinimalNumber: number
 	specialCharactersMinimalNumber: number
 	forbiddenCharacters: string
+}
+
+export interface Password {
+	id: number;
+	userId: number;
+	login: string;
+	password: string;
+	name: string;
+	url: string;
+	notes: string;
+	createdAt: string;
+	updatedAt: string;
+	options: Options;
 }
 
 interface GeneratePasswordResponse {
@@ -58,12 +59,13 @@ class PasswordsService {
 			name: '',
 			url: '',
 			notes: '',
+			options: this.getDefaultOptions(),
 			createdAt: '',
 			updatedAt: ''
         };
     }
 
-	getDefaultPasswordOptions(): PasswordOptions {
+	getDefaultOptions(): Options {
         return {
 			minimalLength: 10,
 			includeUppercase: true,
@@ -79,10 +81,9 @@ class PasswordsService {
     }
 
 	// Dodawanie nowego hasła
-	async generatePassword(options: PasswordOptions): Promise<string> {
+	async generatePassword(options: Options): Promise<string> {
 		try {
-			const response = await axios.post<GeneratePasswordResponse>(
-				`${this.baseUrl}/generate`, 
+			const response = await axios.post<GeneratePasswordResponse>(`${this.baseUrl}/generate`, 
 				options, 
 				this.getAuthHeaders()
 			);
