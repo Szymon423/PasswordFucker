@@ -206,17 +206,23 @@
 		<!-- Modal do potwierdzenia usunięcia -->
 		<div v-if="showDeleteModal" class="modal">
 			<div class="modal-content">
-				<h2>Confirm deletion</h2>
-				<p>Are you sure you want to delete this password?</p>
-				<div class="modal-buttons">
-					<button @click="deletePassword" class="btn btn-delete">
-						<Trash class="icon" />
-						Delete
-					</button>
-					<button @click="showDeleteModal = false" class="btn btn-cancel">
-						<X class="icon" />
-						Cancel
-					</button>
+				<div class="modal-header">
+					<h2>Confirm deletion</h2>
+				</div>
+				<div class="modal-body">
+					<p>Are you sure you want to delete this password?</p>
+				</div>
+				<div class="modal-footer">
+					<div class="modal-buttons">
+						<button @click="deletePassword" class="btn btn-delete">
+							<Trash class="icon" />
+							Delete
+						</button>
+						<button @click="showDeleteModal = false" class="btn btn-cancel">
+							<X class="icon" />
+							Cancel
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
