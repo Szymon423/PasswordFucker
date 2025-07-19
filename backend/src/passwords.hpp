@@ -202,4 +202,20 @@ namespace pass {
     private:
         static void validateOptions(const Password::Options& options);
     };
+
+    /// @brief Class for managing password encryption
+    class PasswordCrypto {
+    public:
+        /// @brief Function to encrypt password secrets
+        /// @param password password object
+        /// @param id user id for encryption
+        /// @return encrypted password object
+        static Password encrypt(const Password& password, const std::uint32_t& id);
+        
+        /// @brief Function to decrypt secrets in password object
+        /// @param password password object
+        /// @param id user id for decryption
+        /// @return decrypted password
+        static Password decrypt(const Password& password, const std::uint32_t& id);
+    };
 }

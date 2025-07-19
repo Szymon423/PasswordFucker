@@ -1,6 +1,7 @@
 #include <auth.hpp>
 #include <Poco/JWT/Token.h>
 #include <Poco/JWT/Signer.h>
+#include <crypto.hpp>
 
 namespace auth {
     nlohmann::json User::toJson() const {
@@ -159,8 +160,17 @@ namespace auth {
         AuthenticationManager menager;
         auto users = menager.getAllUsers();
         for (const auto& user : users) {
-            if (login == user.login && password == user.password) {
-                return user;
+            Crypto crypto(password);
+            auto descryptedLogin = crypto.decrypt(user.login);
+            auto descryptedPassword = crypto.decrypt(user.password);
+            if (login == descryptedLogin && password == descryptedPassword) {
+                User decryptedUser;
+                decryptedUser.login = descryptedLogin;
+                decryptedUser.password = descryptedPassword;
+                decryptedUser.name = crypto.decrypt(user.name);
+                decryptedUser.surname = crypto.decrypt(user.surname);
+                decryptedUser.id = user.id;
+                return decryptedUser;
             }
         }
         return std::nullopt;
@@ -180,7 +190,7 @@ namespace auth {
         return signer.sign(token, Poco::JWT::Signer::ALGO_HS256);
     }
 
-    uint32_t AuthenticationManager::validateJWTToken(const std::string& token) {
+    std::uint32_t AuthenticationManager::validateJWTToken(const std::string& token) {
         Poco::JWT::Signer signer(secretKey);
         Poco::JWT::Token jwt;
         

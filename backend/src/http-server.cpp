@@ -12,7 +12,7 @@
 std::map<std::pair<std::string, std::string>, MyRequestHandler::RouteHandler> MyRequestHandler::routes = {
     {{"GET",  "/api/configuration/get"}, std::bind(&Endpoints::getConfiguration, std::placeholders::_1, std::placeholders::_2)},
     {{"POST", "/api/configuration/update"}, std::bind(&Endpoints::updateConfiguration, std::placeholders::_1, std::placeholders::_2)},
-    {{"POST",  "/api/passwords/generate"}, std::bind(&Endpoints::generatePassword, std::placeholders::_1, std::placeholders::_2)},
+    {{"POST", "/api/passwords/generate"}, std::bind(&Endpoints::generatePassword, std::placeholders::_1, std::placeholders::_2)},
     {{"GET",  "/api/passwords/get"}, std::bind(&Endpoints::getPasswords, std::placeholders::_1, std::placeholders::_2)},
     {{"POST", "/api/passwords/add"}, std::bind(&Endpoints::addPassword, std::placeholders::_1, std::placeholders::_2)},
     {{"POST", "/api/passwords/update"}, std::bind(&Endpoints::updatePassword, std::placeholders::_1, std::placeholders::_2)},

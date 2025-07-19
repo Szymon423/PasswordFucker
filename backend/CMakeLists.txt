@@ -26,6 +26,7 @@ message("VCPKG_TARGET_TRIPLET: ${VCPKG_TARGET_TRIPLET}")
 find_package(spdlog CONFIG REQUIRED)
 find_package(Poco REQUIRED COMPONENTS Util Net JWT)
 find_package(SQLiteCpp CONFIG REQUIRED)
+find_package(cryptopp CONFIG REQUIRED)
 
 # Dodaj exe
 add_executable(PasswordFuckerBackend main.cpp)
@@ -44,6 +45,7 @@ target_link_libraries(PasswordFuckerBackend PRIVATE
     ws2_32
     kernel32
     SQLiteCpp
+    cryptopp::cryptopp
 )
 
 target_include_directories(PasswordFuckerBackend PUBLIC 

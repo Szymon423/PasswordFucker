@@ -5,6 +5,7 @@
 #include <database-manager.hpp>
 #include <tuple>
 #include <random>
+#include "crypto.hpp"
 
 namespace pass {
     nlohmann::json Password::Options::toJson() const {
@@ -357,5 +358,27 @@ namespace pass {
             options.specialCharactersMinimalNumber > 0 && !options.includeSpecialCharacters) {
             throw std::invalid_argument("Inconsistent character requirements");
         }
+    }
+
+    Password PasswordCrypto::encrypt(const Password& password, const std::uint32_t& id) {
+        auto crypto = CryptoManager::get(id);
+        Password pass(password);
+        pass.login = crypto->encrypt(pass.login);
+        pass.password = crypto->encrypt(pass.password);
+        pass.name = crypto->encrypt(pass.name);
+        pass.url = crypto->encrypt(pass.url);
+        pass.notes = crypto->encrypt(pass.notes);
+        return pass;
+    }
+
+    Password PasswordCrypto::decrypt(const Password& password, const std::uint32_t& id) {
+        auto crypto = CryptoManager::get(id);
+        Password pass(password);
+        pass.login = crypto->decrypt(pass.login);
+        pass.password = crypto->decrypt(pass.password);
+        pass.name = crypto->decrypt(pass.name);
+        pass.url = crypto->decrypt(pass.url);
+        pass.notes = crypto->decrypt(pass.notes);
+        return pass;
     }
 }

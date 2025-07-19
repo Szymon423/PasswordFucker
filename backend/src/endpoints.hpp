@@ -6,6 +6,12 @@
 
 /// @brief Namespace for endpoints handling
 namespace Endpoints {
+    /// @brief Helper function to extract JWT token from request
+    /// @param request HTTP request
+    /// @return string with JWT token
+    /// @throw std::runtime_error on faliure
+    std::string extractJwt(Poco::Net::HTTPServerRequest& request);
+
     /// @brief Gets configuration 
     /// @param request HTTP request
     /// @param response HTTP response

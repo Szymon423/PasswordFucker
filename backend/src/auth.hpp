@@ -176,6 +176,6 @@ namespace auth {
         /// @brief Function to validate JWT token
         /// @param token token to validate
         /// @return id of user carried in token
-        static uint32_t validateJWTToken(const std::string& token);
+        static std::uint32_t validateJWTToken(const std::string& token);
     };
 }

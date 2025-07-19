@@ -14,6 +14,7 @@ target_link_libraries(PasswordFucker_lib PRIVATE
     ws2_32
     kernel32
     SQLiteCpp
+    cryptopp::cryptopp
 )
 
 target_include_directories(PasswordFucker_lib PUBLIC 

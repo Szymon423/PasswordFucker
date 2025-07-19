@@ -8,8 +8,33 @@
 #include <configuration.hpp>
 #include <passwords.hpp>
 #include <auth.hpp>
+#include <crypto.hpp>
 
 namespace Endpoints {
+
+    std::string extractJwt(Poco::Net::HTTPServerRequest& request) {
+        // Read auth header
+        std::string authHeader = request.get("Authorization", "");
+        
+        if (authHeader.empty()) {
+            throw std::runtime_error("Missing Authorization header");
+        }
+        
+        // Check if it starts with "Bearer "
+        const std::string bearerPrefix = "Bearer ";
+        if (authHeader.substr(0, bearerPrefix.length()) != bearerPrefix) {
+            throw std::runtime_error("Invalid Authorization header format - missing Bearer prefix");
+        }
+        
+        // Extract token        
+        std::string token = authHeader.substr(bearerPrefix.length());
+        if (token.empty()) {
+            throw std::runtime_error("Empty JWT token");
+        }
+        
+        return token;
+    }
+    
     void getConfiguration(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept {
         try {
             Logger::trace("Reading configuration.");
@@ -121,14 +146,19 @@ namespace Endpoints {
     void getPasswords(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept {
         try {
             Logger::trace("Reading passwords.");
+
+            // Validate request
+            auto userId = auth::AuthenticationManager::validateJWTToken(extractJwt(request));
             
             // Read passwords
             pass::PasswordManager manager;
             auto passwords = manager.getAllPasswords();
-
             nlohmann::json resoult = nlohmann::json::array();
             for (const auto& password : passwords) {
-                resoult.push_back(password.toJson());
+                if (password.userId == userId) {
+                    auto decryptedPassword = pass::PasswordCrypto::decrypt(password, userId);
+                    resoult.push_back(decryptedPassword.toJson());
+                }
             }
 
             // Response
@@ -160,13 +190,17 @@ namespace Endpoints {
         try {
             Logger::trace("Adding password.");
 
+            // Validate request
+            auto userId = auth::AuthenticationManager::validateJWTToken(extractJwt(request));
+
             // Parse JSON from request body
             nlohmann::json requestBody = nlohmann::json::parse(request.stream());
 
             // Parse and update password
             pass::PasswordManager manager;
             auto password = pass::Password::fromJson(requestBody);
-            manager.addPassword(password);
+            auto encryptedPassword = pass::PasswordCrypto::encrypt(password, userId);
+            manager.addPassword(encryptedPassword);
             
             // Response
             response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
@@ -198,13 +232,17 @@ namespace Endpoints {
         try {
             Logger::trace("Updating password.");
 
+            // Validate request
+            auto userId = auth::AuthenticationManager::validateJWTToken(extractJwt(request));
+
             // Parse JSON from request body
             nlohmann::json requestBody = nlohmann::json::parse(request.stream());
 
             // Parse and update password
             pass::PasswordManager manager;
             auto password = pass::Password::fromJson(requestBody);
-            manager.updatePassword(password);
+            auto decryptedPassword = pass::PasswordCrypto::decrypt(password, userId);
+            manager.updatePassword(decryptedPassword);
             
             // Response
             response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);
@@ -235,6 +273,9 @@ namespace Endpoints {
     void removePassword(Poco::Net::HTTPServerRequest& request, Poco::Net::HTTPServerResponse& response) noexcept {
         try {
             Logger::trace("Removing password.");
+
+            // Validate request
+            auto userId = auth::AuthenticationManager::validateJWTToken(extractJwt(request));
 
             // Parse JSON from request body
             nlohmann::json requestBody = nlohmann::json::parse(request.stream());
@@ -300,6 +341,10 @@ namespace Endpoints {
                 
                 std::ostream& out = response.send();
                 out << successJson.dump();
+                
+                // register Crypto instance under this user ID
+                CryptoManager::registerCrypto(user.value().password, user.value().id);
+
                 Logger::info("User {} successfully authenticated", login);
             } 
             else {
@@ -369,7 +414,17 @@ namespace Endpoints {
             // Parse and update password
             auth::AuthenticationManager manager;
             auto user = auth::User::fromJson(requestBody);
-            manager.addUser(user);
+
+            // Encrypt User
+            auth::User encryptedUser;
+            Crypto crypto(user.password);
+            encryptedUser.login = crypto.encrypt(user.login);
+            encryptedUser.password = crypto.encrypt(user.password);
+            encryptedUser.name = crypto.encrypt(user.name);
+            encryptedUser.surname = crypto.encrypt(user.surname);
+            encryptedUser.id = user.id;
+
+            manager.addUser(encryptedUser);
             
             // Response
             response.setStatus(Poco::Net::HTTPResponse::HTTP_OK);

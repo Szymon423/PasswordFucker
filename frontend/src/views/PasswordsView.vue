@@ -231,6 +231,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useAuthStore } from '@/stores/auth'
 import { type Password, type Options, passwordsService } from '@/services/passwords.service';
 import {
 	PlusCircle,
@@ -258,6 +259,7 @@ const showAddEditPasswordModal = ref(false);
 const addEditMode = ref('add');
 const passwordVisible = ref(false);
 const passwordOptionsVisible = ref(false);
+const authStore = useAuthStore()
 
 // Pobieranie haseł
 const fetchPasswords = async () => {
@@ -377,6 +379,7 @@ function openEditPassword(password: Password) {
 
 function openAddPassword() {
 	mutablePassword.value = passwordsService.getDefaultPassword();
+	mutablePassword.value.userId = authStore.user.id;
 	addEditMode.value = 'add';
 	showAddEditPasswordModal.value = true;
 }
